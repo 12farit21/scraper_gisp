@@ -1,8 +1,21 @@
 import requests
 import json
 import time
+import logging
+import argparse
 from database import init_db, insert_company, insert_product, get_product_count, get_company_count
 from parser import parse_product, parse_company
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('log.txt', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # API configuration
 API_URL = "https://gisp.gov.ru/mapm/api/product-list"
@@ -67,6 +80,14 @@ def fetch_page(page_number):
         timeout=15
     )
 
+    # Handle specific HTTP errors
+    if response.status_code == 429:
+        raise requests.exceptions.HTTPError(f"HTTP 429: Too Many Requests")
+
+    server_errors = {500, 502, 503, 504, 505, 509, 404}
+    if response.status_code in server_errors:
+        raise requests.exceptions.HTTPError(f"HTTP {response.status_code}")
+
     response.raise_for_status()
     return response.json()
 
@@ -111,6 +132,7 @@ def run_scraper(start_page=1, max_pages=None):
                 products = page_data.get('data', [])
                 if not products:
                     print(" No data received, stopping.")
+                    logger.info(f"No data received on page {current_page}, stopping.")
                     break
 
                 # Process products
@@ -122,6 +144,7 @@ def run_scraper(start_page=1, max_pages=None):
                 total_companies = get_company_count()
 
                 print(f" OK ({products_count} items) | DB: {total_products} products, {total_companies} companies")
+                logger.info(f"Successfully parsed page {current_page}")
 
                 # Get last page info
                 meta = page_data.get('meta', {})
@@ -135,16 +158,45 @@ def run_scraper(start_page=1, max_pages=None):
                 time.sleep(DELAY_BETWEEN_REQUESTS)
                 current_page += 1
 
+            except requests.exceptions.HTTPError as e:
+                error_msg = str(e)
+
+                # Check for HTTP 429 - Too Many Requests
+                if "429" in error_msg:
+                    print(f" ERROR: {error_msg}")
+                    logger.error(f"HTTP 429 on page {current_page}. Pausing for 10 seconds...")
+                    time.sleep(10)
+                    continue
+
+                # Check for server errors - log and skip to next page
+                server_errors = {"500", "502", "503", "504", "505", "509", "404"}
+                if any(err in error_msg for err in server_errors):
+                    print(f" ERROR: {error_msg}")
+                    logger.error(f"{error_msg} on page {current_page}. Skipping to next page.")
+                    current_page += 1
+                    time.sleep(DELAY_BETWEEN_REQUESTS)
+                    continue
+
+                # Other HTTP errors - log and retry
+                print(f" ERROR: {error_msg}")
+                logger.error(f"HTTP error on page {current_page}: {error_msg}")
+                print(f"Retrying page {current_page} in 5 seconds...")
+                time.sleep(5)
+                continue
+
             except requests.exceptions.RequestException as e:
                 print(f" ERROR: {e}")
+                logger.error(f"Request error on page {current_page}: {e}")
                 print(f"Retrying page {current_page} in 5 seconds...")
                 time.sleep(5)
                 continue
 
     except KeyboardInterrupt:
         print("\nScraper interrupted by user.")
+        logger.info("Scraper interrupted by user.")
     except Exception as e:
         print(f"\nUnexpected error: {e}")
+        logger.exception(f"Unexpected error: {e}")
         raise
 
     # Final statistics
@@ -156,6 +208,23 @@ def run_scraper(start_page=1, max_pages=None):
     print(f"Total products: {final_products}")
     print(f"Total companies: {final_companies}")
     print("=" * 50)
+    logger.info(f"Scraping completed. Total products: {final_products}, Total companies: {final_companies}")
 
 if __name__ == "__main__":
-    run_scraper()
+    parser = argparse.ArgumentParser(description="GISP Parser - Parse products from GISP API")
+    parser.add_argument(
+        "--start-page",
+        type=int,
+        default=1,
+        help="Starting page number for parsing (default: 1)"
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Maximum number of pages to parse (default: None - parse all)"
+    )
+
+    args = parser.parse_args()
+
+    run_scraper(start_page=args.start_page, max_pages=args.max_pages)

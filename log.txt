@@ -1,0 +1,16 @@
+2026-01-14 04:08:18,976 - ERROR - HTTP 500 on page 500. Skipping to next page.
+2026-01-14 04:08:20,362 - ERROR - HTTP 500 on page 501. Skipping to next page.
+2026-01-14 04:08:20,866 - INFO - Scraper interrupted by user.
+2026-01-14 04:08:20,871 - INFO - Scraping completed. Total products: 9984, Total companies: 179
+2026-01-14 04:08:25,868 - ERROR - HTTP 500 on page 2000. Skipping to next page.
+2026-01-14 04:08:27,256 - ERROR - HTTP 500 on page 2001. Skipping to next page.
+2026-01-14 04:08:27,345 - INFO - Scraper interrupted by user.
+2026-01-14 04:08:27,349 - INFO - Scraping completed. Total products: 9984, Total companies: 179
+2026-01-14 04:08:47,033 - ERROR - HTTP error on page 4444444444444444444444444444444: 422 Client Error: Unprocessable Entity for url: https://gisp.gov.ru/mapm/api/product-list
+2026-01-14 04:08:47,905 - INFO - Scraper interrupted by user.
+2026-01-14 04:08:47,910 - INFO - Scraping completed. Total products: 9984, Total companies: 179
+2026-01-14 04:08:59,000 - ERROR - HTTP 500 on page 4444. Skipping to next page.
+2026-01-14 04:09:00,513 - ERROR - HTTP 500 on page 4445. Skipping to next page.
+2026-01-14 04:09:01,925 - ERROR - HTTP 500 on page 4446. Skipping to next page.
+2026-01-14 04:09:03,028 - INFO - Scraper interrupted by user.
+2026-01-14 04:09:03,032 - INFO - Scraping completed. Total products: 9984, Total companies: 179
